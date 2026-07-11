@@ -1,0 +1,24 @@
+name: ShopperSwift
+options:
+  bundleIdPrefix: com.shopper
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+targets:
+  ShopperSwift:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - ShopperSwift
+    info:
+      path: ShopperSwift/Info.plist
+      properties:
+        CFBundleDisplayName: Shopper
+        UILaunchScreen: {}
+        NSLocationWhenInUseUsageDescription: "Shopper uses your location to find nearby batches."
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
