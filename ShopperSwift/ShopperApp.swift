@@ -22,7 +22,7 @@ final class AppState {
     var orders: [Batch] = mockOrders
     var active: Batch?
     var cart: [ItemRow] = []
-    var found: Int { cart.filter { $0.status == .found || $status == .replaced }.count }
+    var found: Int { cart.filter { $0.status == .found || $0.status == .replaced }.count }
     var total: Int { cart.count }
     var allDone: Bool { cart.allSatisfy { $0.status != .pending } }
 
@@ -58,7 +58,9 @@ final class LocService {
         del.onLoc  = { [weak self] c in self?.coord = c }
     }
     func ask() { man.requestWhenInUseAuthorization() }
+    var denied: Bool { auth == .denied || auth == .restricted }
 }
+
 final class LocDel: NSObject, CLLocationManagerDelegate {
     var onAuth: ((CLAuthorizationStatus) -> Void)?; var onLoc: ((CLLocationCoordinate2D) -> Void)?
     func locationManagerDidChangeAuthorization(_ m: CLLocationManager) { onAuth?(m.authorizationStatus) }
@@ -71,22 +73,11 @@ struct Batch: Identifiable {
     var id = UUID(); var store: String; var icon: String; var tint: Color; var addr: String; var dist: Double; var pay: Double; var tip: Double
     var customer: String; var custAddr: String; var items: [BatchItem]; var totalPay: Double { pay + tip }
     static let sample = [
-        Batch(store: "Whole Foods", icon: "leaf.fill", tint: priGreen, addr: "399 4th St", dist: 1.2, pay: 9.50, tip: 6.40, customer: "Jordan P.", custAddr: "15 Castro St", items: [
-            .init(n: "Bananas", q: 6, u: "ea", a: "Produce", p: "Green OK"),
-            .init(n: "Whole Milk", q: 1, u: "gal", a: "Dairy"),
-            .init(n: "Sourdough Loaf", q: 1, u: "ea", a: "Bakery", p: "Heaviest loaf")]),
-        Batch(store: "Costco", icon: "cart.fill", tint: .red, addr: "450 10th St", dist: 3.1, pay: 11.20, tip: 4.00, customer: "Priya M.", custAddr: "880 Mission St", items: [
-            .init(n: "Olive Oil 1L", q: 1, u: "ea", a: "Pantry"),
-            .init(n: "Paper Towels 12pk", q: 1, u: "ea", a: "Household")]),
-        Batch(store: "Trader Joe's", icon: "tortilla.fill", tint: .orange, addr: "23 Elm St", dist: 0.9, pay: 7.00, tip: 5.00, customer: "Marco D.", custAddr: "412 Valencia", items: [
-            .init(n: "Caesar Salad Kit", q: 1, u: "ea", a: "Produce"),
-            .init(n: "Mandarin Chicken", q: 2, u: "ea", a: "Frozen")]),
-        Batch(store: "Safeway", icon: "basket.fill", tint: .blue, addr: "789 Oak Ave", dist: 2.1, pay: 8.40, tip: 6.10, customer: "Linda H.", custAddr: "901 Sutter", items: [
-            .init(n: "Salmon Fillet", q: 1, u: "lb", a: "Seafood"),
-            .init(n: "Asparagus", q: 1, u: "ea", a: "Produce")]),
-        Batch(store: "Best Buy", icon: "tv.fill", tint: .indigo, addr: "300 Tech Plaza", dist: 1.8, pay: 7.25, tip: 4.50, customer: "Aisha T.", custAddr: "700 Mission", items: [
-            .init(n: "HDMI Cable 6ft", q: 2, u: "ea", a: "Electronics"),
-            .init(n: "USB-C Charger 65W", q: 1, u: "ea", a: "Electronics")]),
+        Batch(store: "Whole Foods", icon: "leaf.fill", tint: priGreen, addr: "399 4th St", dist: 1.2, pay: 9.50, tip: 6.40, customer: "Jordan P.", custAddr: "15 Castro St", items: [.init(n: "Bananas", q: 6, u: "ea", a: "Produce", p: "Green OK"), .init(n: "Whole Milk", q: 1, u: "gal", a: "Dairy"), .init(n: "Sourdough Loaf", q: 1, u: "ea", a: "Bakery", p: "Heaviest loaf")]),
+        Batch(store: "Costco", icon: "cart.fill", tint: .red, addr: "450 10th St", dist: 3.1, pay: 11.20, tip: 4.00, customer: "Priya M.", custAddr: "880 Mission", items: [.init(n: "Olive Oil 1L", q: 1, u: "ea", a: "Pantry"), .init(n: "Paper Towels 12pk", q: 1, u: "ea", a: "Household")]),
+        Batch(store: "Trader Joe's", icon: "tortilla.fill", tint: .orange, addr: "23 Elm St", dist: 0.9, pay: 7.00, tip: 5.00, customer: "Marco D.", custAddr: "412 Valencia", items: [.init(n: "Caesar Salad Kit", q: 1, u: "ea", a: "Produce"), .init(n: "Mandarin Chicken", q: 2, u: "ea", a: "Frozen")]),
+        Batch(store: "Safeway", icon: "basket.fill", tint: .blue, addr: "789 Oak Ave", dist: 2.1, pay: 8.40, tip: 6.10, customer: "Linda H.", custAddr: "901 Sutter", items: [.init(n: "Salmon Fillet", q: 1, u: "lb", a: "Seafood"), .init(n: "Asparagus", q: 1, u: "ea", a: "Produce")]),
+        Batch(store: "Best Buy", icon: "tv.fill", tint: .indigo, addr: "300 Tech Plaza", dist: 1.8, pay: 7.25, tip: 4.50, customer: "Aisha T.", custAddr: "700 Mission", items: [.init(n: "HDMI Cable 6ft", q: 2, u: "ea", a: "Electronics"), .init(n: "USB-C Charger 65W", q: 1, u: "ea", a: "Electronics")]),
     ]
 }
 let mockOrders = Batch.sample
@@ -102,17 +93,17 @@ struct Content: View {
     var body: some View {
         switch s.phase {
         case .offline:      LoungeView()
-        case .online:       NavStack { DashView() }
-        case .accepted:     NavStack { AcceptView() }
-        case .shopping:     NavStack { ShopView() }
-        case .checkout:     NavStack { CheckView() }
-        case .delivering:   NavStack { DeliverView() }
-        case .done:         NavStack { DoneView() }
+        case .online:       NavigationStack { DashView() }
+        case .accepted:     NavigationStack { AcceptView() }
+        case .shopping:     NavigationStack { ShopView() }
+        case .checkout:     NavigationStack { CheckView() }
+        case .delivering:   NavigationStack { DeliverView() }
+        case .done:         NavigationStack { DoneView() }
         }
     }
 }
 
-// MARK: - Lounge (Offline)
+// MARK: - Lounge
 struct LoungeView: View {
     @Environment(AppState.self) private var s
     @Environment(LocService.self) private var l
@@ -126,7 +117,7 @@ struct LoungeView: View {
             Spacer().frame(height: 40)
             Button {
                 s.goOnline()
-                if !l.auth.isAuthorized { l.ask() }
+                if l.auth != .authorizedWhenInUse && l.auth != .authorizedAlways { l.ask() }
             } label: {
                 Text("GO ONLINE")
                     .font(.system(size: 26, weight: .heavy, design: .rounded))
@@ -135,7 +126,7 @@ struct LoungeView: View {
                     .background(Circle().fill(LinearGradient(colors: [priGreen, priGreen.opacity(0.8)], startPoint: .top, endPoint: .bottom)))
                     .shadow(color: priGreen.opacity(0.4), radius: 16, y: 8)
             }
-            if l.auth.isDenied {
+            if l.denied {
                 Text("Enable Location in Settings").font(.footnote).foregroundStyle(.secondary).padding(.top, 20)
             }
             Spacer()
@@ -151,11 +142,8 @@ struct LoungeView: View {
         VStack(spacing: 2) { Text(v).font(.headline.weight(.bold)); Text(l).font(.caption).foregroundStyle(.secondary) }
     }
 }
-extension CLAuthorizationStatus {
-    var isAuthorized: Bool { self == .authorizedWhenInUse || self == .authorizedAlways }
-}
 
-// MARK: - Dashboard (Online)
+// MARK: - Dashboard
 struct DashView: View {
     @Environment(AppState.self) private var s
     var body: some View {
@@ -288,97 +276,4 @@ struct ShopView: View {
                     .background(s.allDone ? priGreen : .gray.opacity(0.4), in: RoundedRectangle(cornerRadius: 12)).foregroundStyle(.white)
             }.disabled(!s.allDone).buttonStyle(.plain).padding()
         }
-        .background(Color(.systemGroupedBackground)).navigationTitle("Shopping").navigationBarTitleDisplayMode(.inline)
-    }
-    private var grouped: [(String, [ItemRow])] {
-        Dictionary(grouping: s.cart) { $0.item.aisle }.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
-    }
-}
-
-struct RowView: View {
-    @Environment(AppState.self) private var s; let r: ItemRow
-    var body: some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray5)).frame(width: 40, height: 40)
-                .overlay(Image(systemName: "bag").foregroundStyle(.tertiary))
-            VStack(alignment: .leading) {
-                Text("\(r.item.qty)× \(r.item.name)").font(.subheadline.weight(.semibold))
-                Text(r.item.aisle).font(.caption).foregroundStyle(.secondary)
-                if let p = r.item.note { Text(p).font(.caption).foregroundStyle(.blue) }
-                if let rep = r.replacement { Label("Replaced: \(rep)", systemImage: "arrow.triangle.2.circlepath").font(.caption2).foregroundStyle(.orange) }
-            }
-            Spacer()
-            if r.status == .found { Image(systemName: "checkmark.circle.fill").font(.title3).foregroundStyle(.green) }
-            else if r.status == .replaced { Image(systemName: "arrow.triangle.2.circlepath.fill").font(.title3).foregroundStyle(.orange) }
-            else if r.status == .gone { Image(systemName: "xmark.circle.fill").font(.title3).foregroundStyle(.red) }
-            else {
-                Menu {
-                    Button("Found it") { s.markFound(r) }
-                    Button("Unavailable") { s.markGone(r) }
-                    Menu("Replace with") {
-                        Button("Alt brand") { s.replace(r, with: "Alt \(r.item.name)") }
-                        Button("Similar item") { s.replace(r, with: "Similar \(r.item.name)") }
-                    }
-                } label: { Image(systemName: "ellipsis.circle").font(.title3).foregroundStyle(priGreen) }
-            }
-        }.padding(10)
-    }
-}
-
-// MARK: - Checkout
-struct CheckView: View {
-    @Environment(AppState.self) private var s
-    var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "barcode.viewfinder").font(.system(size: 64)).foregroundStyle(priGreen)
-            Text("At checkout").font(.title.weight(.bold))
-            Text("Pay with the card on file. Tap below when done.").foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 32)
-            Spacer()
-            Button { s.toDeliver() } label: {
-                Text("Pay & head to customer").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(priGreen, in: RoundedRectangle(cornerRadius: 12)).foregroundStyle(.white)
-            }.buttonStyle(.plain).padding()
-        }.background(Color(.systemGroupedBackground)).navigationTitle("Checkout").navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// MARK: - Delivering
-struct DeliverView: View {
-    @Environment(AppState.self) private var s
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("To: \(s.active?.customer ?? "")").font(.title2.weight(.bold))
-                Text(s.active?.custAddr ?? "").foregroundStyle(.secondary)
-                Map(initialPosition: .region(.init(center: .init(latitude: 37.78, longitude: -122.41), span: .init(latitudeDelta: 0.02, longitudeDelta: 0.02)))) {
-                    Marker(s.active?.customer ?? "", coordinate: .init(latitude: 37.78, longitude: -122.41)).tint(.purple)
-                }.frame(height: 200).clipShape(RoundedRectangle(cornerRadius: 14))
-                Text("Leave at front door").font(.footnote).padding().frame(maxWidth: .infinity, alignment: .leading).background(.white, in: RoundedRectangle(cornerRadius: 10))
-                Button { s.toDone() } label: {
-                    Text("Mark as delivered").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(.purple, in: RoundedRectangle(cornerRadius: 12)).foregroundStyle(.white)
-                }.buttonStyle(.plain)
-            }.padding()
-        }.background(Color(.systemGroupedBackground)).navigationTitle("Delivering").navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// MARK: - Done
-struct DoneView: View {
-    @Environment(AppState.self) private var s
-    var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            ZStack { Circle().fill(priGreen.opacity(0.12)).frame(width: 120, height: 120)
-                Image(systemName: "checkmark.seal.fill").font(.system(size: 64)).foregroundStyle(priGreen) }
-            Text("Delivered!").font(.title.weight(.bold))
-            if let b = s.active { Text(String(format: "+$%.2f", b.totalPay)).font(.title2.weight(.semibold)).foregroundStyle(priGreen) }
-            Spacer()
-            Button { s.reset() } label: {
-                Text("Back to dashboard").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(priGreen, in: RoundedRectangle(cornerRadius: 12)).foregroundStyle(.white)
-            }.buttonStyle(.plain).padding()
-        }.background(Color(.systemGroupedBackground))
-    }
-}
+        .background(Color(.systemGroupedBackground
